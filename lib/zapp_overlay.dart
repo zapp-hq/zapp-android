@@ -200,7 +200,6 @@ class OverlayButtonConfig {
 
 /// Handles the positioning and movement of the overlay button
 class OverlayPositionManager {
-  static const String _positionKey = 'overlay_position';
   
   /// Save the overlay button position
   static Future<void> savePosition(double x, double y) async {
