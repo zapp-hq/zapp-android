@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'action_selection_screen.dart';
@@ -45,7 +46,9 @@ class ZappOverlayManager {
     // 2. Start the native Android overlay service
     // 3. Register callback handlers for button interactions
 
-    print('ZappOverlayManager initialized');
+    if (kDebugMode) {
+      print('ZappOverlayManager initialized');
+    }
   }
 
   /// Handle method calls from native Android side
@@ -70,7 +73,9 @@ class ZappOverlayManager {
 
   /// Handle overlay button tap - navigate to Action Selection Screen
   static Future<void> _handleOverlayButtonTap() async {
-    print('Overlay button tapped - opening Action Selection Screen');
+    if (kDebugMode) {
+      print('Overlay button tapped - opening Action Selection Screen');
+    }
 
     if (_appContext != null) {
       // Navigate to Action Selection Screen
@@ -81,13 +86,17 @@ class ZappOverlayManager {
         ),
       );
     } else {
-      print('Error: App context not available for navigation');
+      if (kDebugMode) {
+        print('Error: App context not available for navigation');
+      }
     }
   }
 
   /// Handle overlay position changes for persistence
   static void _handleOverlayPositionChange(double x, double y) {
-    print('Overlay position changed to: ($x, $y)');
+    if (kDebugMode) {
+      print('Overlay position changed to: ($x, $y)');
+    }
 
     // **PRODUCTION IMPLEMENTATION WOULD:**
     // Save overlay position to SharedPreferences for persistence across app restarts
@@ -104,10 +113,14 @@ class ZappOverlayManager {
       await Future.delayed(const Duration(milliseconds: 200));
       _isOverlayVisible = true;
 
-      print('Overlay button shown');
+      if (kDebugMode) {
+        print('Overlay button shown');
+      }
       return true;
     } catch (e) {
-      print('Error showing overlay: $e');
+      if (kDebugMode) {
+        print('Error showing overlay: $e');
+      }
       return false;
     }
   }
@@ -123,10 +136,14 @@ class ZappOverlayManager {
       await Future.delayed(const Duration(milliseconds: 200));
       _isOverlayVisible = false;
 
-      print('Overlay button hidden');
+      if (kDebugMode) {
+        print('Overlay button hidden');
+      }
       return true;
     } catch (e) {
-      print('Error hiding overlay: $e');
+      if (kDebugMode) {
+        print('Error hiding overlay: $e');
+      }
       return false;
     }
   }
@@ -141,10 +158,14 @@ class ZappOverlayManager {
       // This would request SYSTEM_ALERT_WINDOW permission on Android
       // final bool granted = await _channel.invokeMethod('requestOverlayPermission');
 
-      print('Overlay permission requested (placeholder)');
+      if (kDebugMode) {
+        print('Overlay permission requested (placeholder)');
+      }
       return true; // Simulate permission granted for demo
     } catch (e) {
-      print('Error requesting overlay permission: $e');
+      if (kDebugMode) {
+        print('Error requesting overlay permission: $e');
+      }
       return false;
     }
   }
@@ -156,10 +177,14 @@ class ZappOverlayManager {
       // This would check if SYSTEM_ALERT_WINDOW permission is granted
       // final bool hasPermission = await _channel.invokeMethod('hasOverlayPermission');
 
-      print('Checking overlay permission (placeholder)');
+      if (kDebugMode) {
+        print('Checking overlay permission (placeholder)');
+      }
       return true; // Simulate permission granted for demo
     } catch (e) {
-      print('Error checking overlay permission: $e');
+      if (kDebugMode) {
+        print('Error checking overlay permission: $e');
+      }
       return false;
     }
   }
@@ -168,7 +193,9 @@ class ZappOverlayManager {
   static Future<void> dispose() async {
     await hideOverlay();
     _appContext = null;
-    print('ZappOverlayManager disposed');
+    if (kDebugMode) {
+      print('ZappOverlayManager disposed');
+    }
   }
 }
 
@@ -215,7 +242,7 @@ class ZappOverlayManager {
 
 /// Demo widget for testing overlay functionality within the app
 class ZappOverlayDemo extends StatefulWidget {
-  const ZappOverlayDemo({Key? key}) : super(key: key);
+  const ZappOverlayDemo({super.key});
 
   @override
   State<ZappOverlayDemo> createState() => _ZappOverlayDemoState();

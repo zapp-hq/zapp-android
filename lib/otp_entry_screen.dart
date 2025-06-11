@@ -22,13 +22,14 @@ class _OTPEntryScreenState extends State<OTPEntryScreen> {
   Future<void> _loadLocalFingerprint() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _localFingerprint = prefs.getString('local_pgp_fingerprint') ?? 'Not Available';
+      _localFingerprint =
+          prefs.getString('local_pgp_fingerprint') ?? 'Not Available';
     });
   }
 
   Future<void> _connectWithOTP() async {
     final otp = _otpController.text.trim();
-    
+
     if (otp.isEmpty) {
       _showSnackBar('Please enter an OTP');
       return;
@@ -42,37 +43,44 @@ class _OTPEntryScreenState extends State<OTPEntryScreen> {
       // PLACEHOLDER: This is where native Android code would be needed
       // to send the OTP and local public key to the infra server
       // and receive the other device's public key
-      
+
       await _performDeviceLinking(otp);
-      
+
       if (mounted) {
+        // Only pop if the widget is still in the tree after async operation
         Navigator.of(context).pop();
         _showSnackBar('Device linked successfully!');
       }
     } catch (e) {
-      _showSnackBar('Failed to link device: \$e');
+      if (mounted) {
+        // Check if widget is still mounted before showing SnackBar
+        _showSnackBar('Failed to link device: $e');
+      }
     } finally {
-      setState(() {
-        _isConnecting = false;
-      });
+      if (mounted) {
+        // Check if widget is still mounted before calling setState
+        setState(() {
+          _isConnecting = false;
+        });
+      }
     }
   }
 
   Future<void> _performDeviceLinking(String otp) async {
     // CRUCIAL PLACEHOLDER: Native Android integration needed here
-    // 
+    //
     // This method represents where you would need to implement:
     // 1. Network communication with the tiny infra server
     // 2. Send local public key and OTP to server
     // 3. Receive remote device's public key from server
     // 4. Verify the linking process
-    // 
+    //
     // The native Android code would handle:
     // - HTTP/HTTPS requests to the server
     // - JSON parsing of responses
     // - Error handling for network issues
     // - Timeout management
-    // 
+    //
     // Example server communication flow:
     // POST /link-device
     // Body: {
@@ -80,7 +88,7 @@ class _OTPEntryScreenState extends State<OTPEntryScreen> {
     //   "publicKey": "-----BEGIN PGP PUBLIC KEY BLOCK-----...",
     //   "deviceName": "My Android Device"
     // }
-    // 
+    //
     // Response: {
     //   "success": true,
     //   "remotePublicKey": "-----BEGIN PGP PUBLIC KEY BLOCK-----...",
@@ -90,22 +98,26 @@ class _OTPEntryScreenState extends State<OTPEntryScreen> {
 
     // Simulate network delay
     await Future.delayed(const Duration(seconds: 2));
-    
+
     // For demonstration, we'll add a mock linked device
     final prefs = await SharedPreferences.getInstance();
     final deviceList = prefs.getStringList('linked_devices') ?? [];
-    
+
     // Mock remote device data (in real implementation, this comes from server)
-    final mockRemoteDevice = 'Remote Device|MOCK_REMOTE_PUBLIC_KEY|REMOTE_FINGERPRINT_\$otp';
+    final mockRemoteDevice =
+        'Remote Device|MOCK_REMOTE_PUBLIC_KEY|REMOTE_FINGERPRINT_$otp';
     deviceList.add(mockRemoteDevice);
-    
+
     await prefs.setStringList('linked_devices', deviceList);
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    // Ensure context is still valid before showing SnackBar
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   @override
@@ -116,29 +128,23 @@ class _OTPEntryScreenState extends State<OTPEntryScreen> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
+      // Wrap the body content in SingleChildScrollView
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Header
-            const Icon(
-              Icons.link,
-              size: 64,
-              color: Colors.blue,
-            ),
+            const Icon(Icons.link, size: 64, color: Colors.blue),
             const SizedBox(height: 24),
-            
+
             const Text(
               'Enter OTP to Link Device',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            
+
             const Text(
               'Enter the 6-digit OTP generated on the other device to establish a secure connection.',
               style: TextStyle(color: Colors.grey),
@@ -183,7 +189,9 @@ class _OTPEntryScreenState extends State<OTPEntryScreen> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         ),
                         SizedBox(width: 12),

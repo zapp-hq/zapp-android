@@ -1,10 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'action_selection_screen.dart';
 import 'zapp_overlay.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -48,7 +49,9 @@ class _HomeScreenState extends State<HomeScreen> {
         }).toList();
       });
     } catch (e) {
-      print('Error loading linked devices: $e');
+      if (kDebugMode) {
+        print('Error loading linked devices: $e');
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -86,7 +89,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ];
       });
     } catch (e) {
-      print('Error loading incoming zapps: $e');
+      if (kDebugMode) {
+        print('Error loading incoming zapps: $e');
+      }
     }
   }
 
@@ -103,7 +108,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ZappOverlayManager.showOverlay();
       }
     } catch (e) {
-      print('Error loading overlay state: $e');
+      if (kDebugMode) {
+        print('Error loading overlay state: $e');
+      }
     }
   }
 
@@ -113,7 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('overlay_enabled', enabled);
     } catch (e) {
-      print('Error saving overlay state: $e');
+      if (kDebugMode) {
+        print('Error saving overlay state: $e');
+      }
     }
   }
 
@@ -263,9 +272,11 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () {
               Navigator.of(context).pop();
               // Execute the zapp action
-              print(
+              if (kDebugMode) {
+                print(
                 'Executing zapp action: ${zapp['action']} with content: ${zapp['content']}',
               );
+              }
             },
             child: const Text('Execute'),
           ),

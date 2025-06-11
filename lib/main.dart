@@ -10,7 +10,7 @@ void main() {
 }
 
 class ZappApp extends StatelessWidget {
-  const ZappApp({Key? key}) : super(key: key);
+  const ZappApp({super.key});
 
   @override
   Widget build(BuildContext context) {
