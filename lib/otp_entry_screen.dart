@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
@@ -86,12 +87,22 @@ class _OTPEntryScreenState extends State<OTPEntryScreen> {
       final localPublicKeyBase64 =
           CryptoUtils.publicKeyToBase64(localPublicKey);
 
-      print('=== DEVICE LINKING SIMULATION ===');
-      print('Local Device Fingerprint: \$_localFingerprint');
-      print('Generated OTP: \$_generatedOTP');
-      print('Entered OTP: \${_otpController.text}');
-      print(
+      if (kDebugMode) {
+        print('=== DEVICE LINKING SIMULATION ===');
+      }
+      if (kDebugMode) {
+        print('Local Device Fingerprint: \$_localFingerprint');
+      }
+      if (kDebugMode) {
+        print('Generated OTP: \$_generatedOTP');
+      }
+      if (kDebugMode) {
+        print('Entered OTP: \${_otpController.text}');
+      }
+      if (kDebugMode) {
+        print(
           'Local Public Key (Base64): \${localPublicKeyBase64.substring(0, 50)}...');
+      }
 
       // **PLACEHOLDER**: Server communication would happen here
       /*

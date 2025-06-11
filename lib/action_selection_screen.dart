@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class ActionSelectionScreen extends StatefulWidget {
-  const ActionSelectionScreen({Key? key}) : super(key: key);
+  const ActionSelectionScreen({super.key});
 
   @override
   State<ActionSelectionScreen> createState() => _ActionSelectionScreenState();
@@ -152,12 +153,24 @@ class _ActionSelectionScreenState extends State<ActionSelectionScreen> {
       // 2. Send the encrypted payload to the target device via the infrastructure server
       // 3. Handle delivery confirmation and error states
       
-      print('=== ZAPP ACTION EXECUTION ===');
-      print('Selected Content: $_selectedContent');
-      print('User Intent: ${_intentController.text}');
-      print('Chosen Action: $_selectedAction');
-      print('Timestamp: ${DateTime.now().toIso8601String()}');
-      print('=============================');
+      if (kDebugMode) {
+        print('=== ZAPP ACTION EXECUTION ===');
+      }
+      if (kDebugMode) {
+        print('Selected Content: $_selectedContent');
+      }
+      if (kDebugMode) {
+        print('User Intent: ${_intentController.text}');
+      }
+      if (kDebugMode) {
+        print('Chosen Action: $_selectedAction');
+      }
+      if (kDebugMode) {
+        print('Timestamp: ${DateTime.now().toIso8601String()}');
+      }
+      if (kDebugMode) {
+        print('=============================');
+      }
 
       // Simulate processing time
       await Future.delayed(const Duration(seconds: 1));
@@ -180,7 +193,9 @@ class _ActionSelectionScreenState extends State<ActionSelectionScreen> {
       }
 
     } catch (e) {
-      print('Error executing action: $e');
+      if (kDebugMode) {
+        print('Error executing action: $e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -271,11 +286,11 @@ class _ActionSelectionScreenState extends State<ActionSelectionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.psychology, color: Colors.orange),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.psychology, color: Colors.orange),
+                SizedBox(width: 8),
+                Text(
                   'Your Intent',
                   style: TextStyle(
                     fontSize: 18,

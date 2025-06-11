@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'otp_entry_screen.dart';
@@ -57,10 +58,14 @@ class _SetupScreenState extends State<SetupScreen> {
 
     try {
       // Generate 2048-bit RSA key pair for good security/performance balance
-      print('Starting RSA key generation...');
+      if (kDebugMode) {
+        print('Starting RSA key generation...');
+      }
       final keyPair = CryptoUtils.generateKeyPair(bitLength: 2048);
 
-      print('Key generation completed, saving to storage...');
+      if (kDebugMode) {
+        print('Key generation completed, saving to storage...');
+      }
 
       // Save the key pair securely
       final saved = await StorageService.saveKeyPair(

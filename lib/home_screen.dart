@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'action_selection_screen.dart';
 import 'otp_entry_screen.dart';
@@ -50,7 +51,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
 
-      print('Loaded \${devices.length} linked devices');
+      if (kDebugMode) {
+        print('Loaded \${devices.length} linked devices');
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -86,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Device'),
-        content: Text('Are you sure you want to remove "\$deviceName"?\\n\\n'
+        content: const Text('Are you sure you want to remove "\$deviceName"?\\n\\n'
                      'This will permanently delete the device link and you will need to re-pair to restore communication.'),
         actions: [
           TextButton(
@@ -155,11 +158,11 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Original: \$testMessage'),
+              const Text('Original: \$testMessage'),
               const SizedBox(height: 8),
-              Text('Encrypted: \${encryptedBase64.substring(0, 50)}...'),
+              const Text('Encrypted: \${encryptedBase64.substring(0, 50)}...'),
               const SizedBox(height: 8),
-              Text('Decrypted: \$decryptedMessage'),
+              const Text('Decrypted: \$decryptedMessage'),
               const SizedBox(height: 8),
               Text(
                 testMessage == decryptedMessage ? '✅ Test Successful' : '❌ Test Failed',
@@ -300,9 +303,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text(
+                            const Text(
                               'Fingerprint: \$_localFingerprint',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'monospace',
                                 fontSize: 12,
                               ),

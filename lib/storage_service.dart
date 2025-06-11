@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pointycastle/export.dart';
 import 'crypto_utils.dart';
@@ -45,10 +46,14 @@ class StorageService {
       await prefs.setString(_keyPrivateKey, privateKeyBase64);
       await prefs.setString(_keyFingerprint, fingerprint);
 
-      print('Key pair saved successfully with fingerprint: \$fingerprint');
+      if (kDebugMode) {
+        print('Key pair saved successfully with fingerprint: \$fingerprint');
+      }
       return true;
     } catch (e) {
-      print('Error saving key pair: \$e');
+      if (kDebugMode) {
+        print('Error saving key pair: \$e');
+      }
       return false;
     }
   }
@@ -70,7 +75,9 @@ class StorageService {
       if (publicKeyBase64 == null ||
           privateKeyBase64 == null ||
           fingerprint == null) {
-        print('No complete key pair found in storage');
+        if (kDebugMode) {
+          print('No complete key pair found in storage');
+        }
         return null;
       }
 
@@ -81,12 +88,16 @@ class StorageService {
       // Verify fingerprint matches (integrity check)
       final computedFingerprint = CryptoUtils.generateFingerprint(publicKey);
       if (computedFingerprint != fingerprint) {
-        print(
+        if (kDebugMode) {
+          print(
             'Warning: Stored fingerprint does not match computed fingerprint');
+        }
         // Could indicate data corruption or tampering
       }
 
-      print('Key pair loaded successfully with fingerprint: \$fingerprint');
+      if (kDebugMode) {
+        print('Key pair loaded successfully with fingerprint: \$fingerprint');
+      }
 
       return {
         'publicKey': publicKey,
@@ -94,7 +105,9 @@ class StorageService {
         'fingerprint': fingerprint,
       };
     } catch (e) {
-      print('Error loading key pair: \$e');
+      if (kDebugMode) {
+        print('Error loading key pair: \$e');
+      }
       return null;
     }
   }
@@ -130,11 +143,15 @@ class StorageService {
       if (existingIndex >= 0) {
         // Update existing device
         existingDevices[existingIndex] = deviceData;
-        print('Updated existing device: \$deviceName');
+        if (kDebugMode) {
+          print('Updated existing device: \$deviceName');
+        }
       } else {
         // Add new device
         existingDevices.add(deviceData);
-        print('Added new linked device: \$deviceName');
+        if (kDebugMode) {
+          print('Added new linked device: \$deviceName');
+        }
       }
 
       // Save updated device list
@@ -143,7 +160,9 @@ class StorageService {
 
       return true;
     } catch (e) {
-      print('Error saving linked device: \$e');
+      if (kDebugMode) {
+        print('Error saving linked device: \$e');
+      }
       return false;
     }
   }
@@ -162,7 +181,9 @@ class StorageService {
       final devicesJson = prefs.getString(_keyLinkedDevices);
 
       if (devicesJson == null) {
-        print('No linked devices found in storage');
+        if (kDebugMode) {
+          print('No linked devices found in storage');
+        }
         return [];
       }
 
@@ -170,10 +191,14 @@ class StorageService {
       final devicesList = json.decode(devicesJson) as List<dynamic>;
       final devices = devicesList.cast<Map<String, dynamic>>();
 
-      print('Loaded \${devices.length} linked devices');
+      if (kDebugMode) {
+        print('Loaded \${devices.length} linked devices');
+      }
       return devices;
     } catch (e) {
-      print('Error loading linked devices: \$e');
+      if (kDebugMode) {
+        print('Error loading linked devices: \$e');
+      }
       return [];
     }
   }
@@ -196,7 +221,9 @@ class StorageService {
           (device) => device['deviceFingerprint'] == deviceFingerprint);
 
       if (existingDevices.length == initialLength) {
-        print('Device with fingerprint \$deviceFingerprint not found');
+        if (kDebugMode) {
+          print('Device with fingerprint \$deviceFingerprint not found');
+        }
         return false;
       }
 
@@ -204,11 +231,15 @@ class StorageService {
       final devicesJson = json.encode(existingDevices);
       await prefs.setString(_keyLinkedDevices, devicesJson);
 
-      print(
+      if (kDebugMode) {
+        print(
           'Successfully removed device with fingerprint: \$deviceFingerprint');
+      }
       return true;
     } catch (e) {
-      print('Error deleting linked device: \$e');
+      if (kDebugMode) {
+        print('Error deleting linked device: \$e');
+      }
       return false;
     }
   }
@@ -228,10 +259,14 @@ class StorageService {
         }
       }
 
-      print('Device with fingerprint \$deviceFingerprint not found');
+      if (kDebugMode) {
+        print('Device with fingerprint \$deviceFingerprint not found');
+      }
       return null;
     } catch (e) {
-      print('Error getting linked device: \$e');
+      if (kDebugMode) {
+        print('Error getting linked device: \$e');
+      }
       return null;
     }
   }
@@ -252,7 +287,9 @@ class StorageService {
       final publicKeyBase64 = deviceData['publicKey'] as String;
       return CryptoUtils.publicKeyFromBase64(publicKeyBase64);
     } catch (e) {
-      print('Error getting device public key: \$e');
+      if (kDebugMode) {
+        print('Error getting device public key: \$e');
+      }
       return null;
     }
   }
@@ -265,10 +302,14 @@ class StorageService {
       final settingsJson = json.encode(settings);
       await prefs.setString(_keyDeviceSettings, settingsJson);
 
-      print('Settings saved successfully');
+      if (kDebugMode) {
+        print('Settings saved successfully');
+      }
       return true;
     } catch (e) {
-      print('Error saving settings: \$e');
+      if (kDebugMode) {
+        print('Error saving settings: \$e');
+      }
       return false;
     }
   }
@@ -281,15 +322,21 @@ class StorageService {
       final settingsJson = prefs.getString(_keyDeviceSettings);
 
       if (settingsJson == null) {
-        print('No settings found, returning defaults');
+        if (kDebugMode) {
+          print('No settings found, returning defaults');
+        }
         return {};
       }
 
       final settings = json.decode(settingsJson) as Map<String, dynamic>;
-      print('Settings loaded successfully');
+      if (kDebugMode) {
+        print('Settings loaded successfully');
+      }
       return settings;
     } catch (e) {
-      print('Error loading settings: \$e');
+      if (kDebugMode) {
+        print('Error loading settings: \$e');
+      }
       return {};
     }
   }
@@ -310,10 +357,14 @@ class StorageService {
       await prefs.remove(_keyLinkedDevices);
       await prefs.remove(_keyDeviceSettings);
 
-      print('All data cleared successfully');
+      if (kDebugMode) {
+        print('All data cleared successfully');
+      }
       return true;
     } catch (e) {
-      print('Error clearing data: \$e');
+      if (kDebugMode) {
+        print('Error clearing data: \$e');
+      }
       return false;
     }
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'setup_screen.dart';
@@ -47,7 +48,7 @@ class ZappApp extends StatelessWidget {
 }
 
 class AppInitializer extends StatefulWidget {
-  const AppInitializer({Key? key}) : super(key: key);
+  const AppInitializer({super.key});
 
   @override
   State<AppInitializer> createState() => _AppInitializerState();
@@ -102,7 +103,9 @@ class _AppInitializerState extends State<AppInitializer> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error during app initialization: $e');
+      if (kDebugMode) {
+        print('Error during app initialization: $e');
+      }
       setState(() {
         _initializationStatus = 'Error during initialization';
         _isLoading = false;
@@ -198,24 +201,34 @@ class ZappConfig {
 /// Error handling and logging utilities
 class ZappLogger {
   static void info(String message) {
-    print('[ZAPP INFO] $message');
+    if (kDebugMode) {
+      print('[ZAPP INFO] $message');
+    }
   }
 
   static void warning(String message) {
-    print('[ZAPP WARNING] $message');
+    if (kDebugMode) {
+      print('[ZAPP WARNING] $message');
+    }
   }
 
   static void error(String message, [Object? error]) {
-    print('[ZAPP ERROR] $message');
+    if (kDebugMode) {
+      print('[ZAPP ERROR] $message');
+    }
     if (error != null) {
-      print('[ZAPP ERROR] Details: $error');
+      if (kDebugMode) {
+        print('[ZAPP ERROR] Details: $error');
+      }
     }
   }
 
   static void debug(String message) {
     // Only log debug messages in debug mode
     assert(() {
-      print('[ZAPP DEBUG] $message');
+      if (kDebugMode) {
+        print('[ZAPP DEBUG] $message');
+      }
       return true;
     }());
   }
