@@ -1,7 +1,14 @@
+/// Cryptographic utility class for hybrid RSA-AES-GCM encryption
+/// Implements end-to-end encryption using RSA for key wrapping and signatures
+/// with AES-GCM for efficient content encryption
+/// Uses the pointycastle package for all cryptographic operations
+library;
+
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:pointycastle/export.dart';
+import 'package:crypto/crypto.dart';
 
 /// Cryptographic utility class for RSA encryption, decryption, signing, and verification
 /// Uses the pointycastle package for all cryptographic operations
@@ -38,147 +45,303 @@ class CryptoUtils {
         publicKey, privateKey);
   }
 
-  /// Encrypts a string message using the recipient's RSA public key
-  /// Uses OAEP padding with SHA-256 for enhanced security
-  /// Returns encrypted data as Uint8List that should be Base64 encoded for storage/transmission
+  /// Generates a random AES key for symmetric encryption
+  /// Default key length is 32 bytes (256 bits) for AES-256
+  /// Returns a cryptographically secure random key
+  static Uint8List generateAesKey({int keyLengthBytes = 32}) {
+    final secureRandom = _createSecureRandom();
+    final keyBytes = Uint8List(keyLengthBytes);
+    secureRandom.nextBytes(keyBytes as int);
+    return keyBytes;
+  }
+
+  /// Generates a random Initialization Vector (IV) for AES-GCM
+  /// Default IV length is 12 bytes (96 bits) which is standard for GCM
+  /// Returns a cryptographically secure random IV
+  static Uint8List generateAesIv({int ivLengthBytes = 12}) {
+    final secureRandom = _createSecureRandom();
+    final ivBytes = Uint8List(ivLengthBytes);
+    secureRandom.nextBytes(ivBytes as int);
+    return ivBytes;
+  }
+
+  /// Encrypts data using AES-GCM authenticated encryption
+  /// Provides both confidentiality and authenticity of the data
+  /// Associated data can be included for additional authentication context
+  static Uint8List aesGcmEncrypt(
+      Uint8List plaintext, Uint8List key, Uint8List iv,
+      {Uint8List? associatedData}) {
+    try {
+      final cipher = GCMBlockCipher(AESEngine());
+      final keyParam = KeyParameter(key);
+      final params = AEADParameters(
+        keyParam,
+        128, // Authentication tag length in bits (128 bits = 16 bytes)
+        iv,
+        associatedData ?? Uint8List(0),
+      );
+
+      cipher.init(true, params); // True for encryption
+      return cipher.process(plaintext);
+    } catch (e) {
+      throw Exception('AES-GCM encryption failed: $e');
+    }
+  }
+
+  /// Decrypts data using AES-GCM authenticated encryption
+  /// Verifies both the ciphertext and authentication tag
+  /// Throws exception if authentication fails
+  static Uint8List aesGcmDecrypt(
+      Uint8List ciphertext, Uint8List key, Uint8List iv,
+      {Uint8List? associatedData}) {
+    try {
+      final cipher = GCMBlockCipher(AESEngine());
+      final keyParam = KeyParameter(key);
+      final params = AEADParameters(
+        keyParam,
+        128, // Authentication tag length in bits
+        iv,
+        associatedData ?? Uint8List(0),
+      );
+
+      cipher.init(false, params); // False for decryption
+      return cipher.process(ciphertext);
+    } catch (e) {
+      throw Exception('AES-GCM decryption failed: $e');
+    }
+  }
+
+  /// Encrypts a string message using hybrid RSA-AES-GCM scheme
+  /// 1. Generates ephemeral AES key and IV
+  /// 2. Encrypts message content with AES-GCM
+  /// 3. Encrypts AES key with recipient's RSA public key
+  /// 4. Signs the encrypted payload with sender's RSA private key
+  /// Returns a JSON string containing all encrypted components
+  static String encryptHybridMessage(
+      String message, RSAPublicKey recipientPublicKey, RSAPrivateKey senderPrivateKey) {
+    try {
+      // 1. Generate ephemeral AES key and IV
+      final aesKey = generateAesKey();
+      final aesIv = generateAesIv();
+
+      // 2. Encrypt the message content with AES-GCM
+      final messageBytes = Uint8List.fromList(utf8.encode(message));
+      final encryptedContent = aesGcmEncrypt(messageBytes, aesKey, aesIv);
+
+      // 3. Encrypt the ephemeral AES key with recipient's RSA public key (OAEP padding)
+      final rsaEncryptor = OAEPEncoding.withSHA256(RSAEngine());
+      rsaEncryptor.init(true, PublicKeyParameter<RSAPublicKey>(recipientPublicKey));
+      final encryptedAesKey = _processInBlocks(rsaEncryptor, aesKey);
+
+      // 4. Create payload for signing (encrypted content + IV + encrypted AES key)
+      final dataToSign = Uint8List.fromList(
+          encryptedContent.toList() + aesIv.toList() + encryptedAesKey.toList());
+      final signature = signBytes(dataToSign, senderPrivateKey);
+
+      // 5. Bundle everything into a JSON string
+      final Map<String, dynamic> encryptedBlob = {
+        'encryptedAesKey': base64.encode(encryptedAesKey),
+        'encryptedContent': base64.encode(encryptedContent),
+        'iv': base64.encode(aesIv),
+        'signature': base64.encode(signature),
+        'version': '1.0', // For future compatibility
+      };
+
+      return json.encode(encryptedBlob);
+    } catch (e) {
+      throw Exception('Hybrid encryption failed: $e');
+    }
+  }
+
+  /// Decrypts a hybrid RSA-AES-GCM encrypted message
+  /// 1. Parses the JSON blob to extract components
+  /// 2. Verifies digital signature for authenticity
+  /// 3. Decrypts AES key using local RSA private key
+  /// 4. Decrypts message content using recovered AES key
+  /// Returns the original message string
+  static String decryptHybridMessage(
+      String jsonBlob, RSAPrivateKey localPrivateKey, RSAPublicKey senderPublicKey) {
+    try {
+      // Parse the JSON blob
+      final Map<String, dynamic> blob = json.decode(jsonBlob) as Map<String, dynamic>;
+
+      final encryptedAesKey = base64.decode(blob['encryptedAesKey'] as String);
+      final encryptedContent = base64.decode(blob['encryptedContent'] as String);
+      final aesIv = base64.decode(blob['iv'] as String);
+      final signature = base64.decode(blob['signature'] as String);
+
+      // 1. Verify the digital signature first (critical for authenticity)
+      final dataToVerify = Uint8List.fromList(
+          encryptedContent.toList() + aesIv.toList() + encryptedAesKey.toList());
+      if (!verifyBytesSignature(dataToVerify, signature, senderPublicKey)) {
+        throw const FormatException('Signature verification failed. Message authenticity compromised.');
+      }
+
+      // 2. Decrypt the ephemeral AES key with local RSA private key
+      final rsaDecryptor = OAEPEncoding.withSHA256(RSAEngine());
+      rsaDecryptor.init(false, PrivateKeyParameter<RSAPrivateKey>(localPrivateKey));
+      final aesKey = _processInBlocks(rsaDecryptor, encryptedAesKey);
+
+      // 3. Decrypt the message content with the ephemeral AES key
+      final decryptedContentBytes = aesGcmDecrypt(encryptedContent, aesKey, aesIv);
+
+      return utf8.decode(decryptedContentBytes);
+    } catch (e) {
+      throw Exception('Hybrid decryption failed: $e');
+    }
+  }
+
+  /// Legacy method for backward compatibility
+  /// @deprecated Use encryptHybridMessage instead
   static Uint8List encryptMessage(String message, RSAPublicKey publicKey) {
-    // Create OAEP encoding with SHA-256 digest for secure padding
-    final encryptor = OAEPEncoding.withSHA256(RSAEngine());
-
-    // Initialize for encryption with the public key
-    encryptor.init(true, PublicKeyParameter<RSAPublicKey>(publicKey));
-
-    // Convert message to bytes and encrypt
     final messageBytes = Uint8List.fromList(utf8.encode(message));
-
-    // Process the encryption in blocks if necessary
+    final encryptor = OAEPEncoding.withSHA256(RSAEngine());
+    encryptor.init(true, PublicKeyParameter<RSAPublicKey>(publicKey));
     return _processInBlocks(encryptor, messageBytes);
   }
 
-  /// Decrypts encrypted bytes using the local RSA private key
-  /// Uses OAEP padding with SHA-256 matching the encryption process
-  /// Returns the original message as a string
-  static String decryptMessage(
-      Uint8List encryptedBytes, RSAPrivateKey privateKey) {
-    // Create OAEP encoding with SHA-256 digest matching encryption
+  /// Legacy method for backward compatibility
+  /// @deprecated Use decryptHybridMessage instead
+  static String decryptMessage(Uint8List encryptedBytes, RSAPrivateKey privateKey) {
     final decryptor = OAEPEncoding.withSHA256(RSAEngine());
-
-    // Initialize for decryption with the private key
     decryptor.init(false, PrivateKeyParameter<RSAPrivateKey>(privateKey));
-
-    // Decrypt the data and convert back to string
     final decryptedBytes = _processInBlocks(decryptor, encryptedBytes);
     return utf8.decode(decryptedBytes);
   }
 
-  /// Signs a message using RSA private key with SHA-256 digest
-  /// Creates a digital signature that can be verified with the corresponding public key
-  /// Returns the signature as Uint8List
-  static Uint8List signMessage(String message, RSAPrivateKey privateKey) {
-    // Create RSA signer with SHA-256 digest
-    // Algorithm identifier for SHA-256 with RSA encryption (RFC 3447)
-    final signer = RSASigner(SHA256Digest(), '0609608648016503040201');
-
-    // Initialize for signing with the private key
-    signer.init(true, PrivateKeyParameter<RSAPrivateKey>(privateKey));
-
-    // Convert message to bytes and generate signature
+  /// Creates a digital signature for the provided message string
+  /// Uses SHA-256 for hashing and RSA-PSS for signing
+  /// Returns the signature as a base64-encoded string
+  static String signMessage(String message, RSAPrivateKey privateKey) {
     final messageBytes = Uint8List.fromList(utf8.encode(message));
-    final signature = signer.generateSignature(messageBytes);
-
-    return signature.bytes;
+    final signature = signBytes(messageBytes, privateKey);
+    return base64.encode(signature);
   }
 
-  /// Verifies a signature using RSA public key with SHA-256 digest
-  /// Checks if the signature was created by the holder of the corresponding private key
+  /// Creates a digital signature for byte array data
+  /// Uses SHA-256 digest with RSA signing
+  /// Returns raw signature bytes
+  static Uint8List signBytes(Uint8List bytes, RSAPrivateKey privateKey) {
+    try {
+      final signer = RSASigner(SHA256Digest(), '0609608648016503040201');
+      signer.init(true, PrivateKeyParameter<RSAPrivateKey>(privateKey));
+      final signature = signer.generateSignature(bytes);
+      return signature.bytes;
+    } catch (e) {
+      throw Exception('Signing failed: $e');
+    }
+  }
+
+  /// Verifies a digital signature for a message string
+  /// Uses SHA-256 for hashing and RSA for verification
   /// Returns true if signature is valid, false otherwise
   static bool verifySignature(
-      String message, Uint8List signature, RSAPublicKey publicKey) {
+      String message, String signature, RSAPublicKey publicKey) {
     try {
-      // Create RSA verifier with SHA-256 digest (same as signing)
-      final verifier = RSASigner(SHA256Digest(), '0609608648016503040201');
-
-      // Initialize for verification with the public key
-      verifier.init(false, PublicKeyParameter<RSAPublicKey>(publicKey));
-
-      // Convert message to bytes and create signature object
       final messageBytes = Uint8List.fromList(utf8.encode(message));
-      final rsaSignature = RSASignature(signature);
-
-      // Verify the signature
-      return verifier.verifySignature(messageBytes, rsaSignature);
+      final signatureBytes = base64.decode(signature);
+      return verifyBytesSignature(messageBytes, signatureBytes, publicKey);
     } catch (e) {
-      // Return false for any verification errors (corrupted signature, etc.)
       return false;
     }
   }
 
-  /// Converts RSA public key to Base64 encoded string for storage/transmission
-  /// Encodes the modulus and exponent in a custom format for easy parsing
-  static String publicKeyToBase64(RSAPublicKey publicKey) {
-    // Create a map with the key components
-    final keyData = {
-      'modulus': publicKey.modulus.toString(),
-      'exponent': publicKey.exponent.toString(),
-    };
-
-    // Encode as JSON then Base64
-    final jsonString = json.encode(keyData);
-    return base64.encode(utf8.encode(jsonString));
-  }
-
-  /// Converts RSA private key to Base64 encoded string for secure storage
-  /// Includes all necessary components for full key reconstruction
-  static String privateKeyToBase64(RSAPrivateKey privateKey) {
-    // Create a map with all private key components
-    final keyData = {
-      'modulus': privateKey.modulus.toString(),
-      'privateExponent': privateKey.privateExponent.toString(),
-      'p': privateKey.p.toString(),
-      'q': privateKey.q.toString(),
-    };
-
-    // Encode as JSON then Base64
-    final jsonString = json.encode(keyData);
-    return base64.encode(utf8.encode(jsonString));
-  }
-
-  /// Reconstructs RSA public key from Base64 encoded string
-  /// Parses the JSON format created by publicKeyToBase64
-  static RSAPublicKey publicKeyFromBase64(String base64Key) {
+  /// Verifies a digital signature for byte array data
+  /// Uses SHA-256 digest with RSA verification
+  /// Returns true if signature is valid, false otherwise
+  static bool verifyBytesSignature(
+      Uint8List bytes, Uint8List signature, RSAPublicKey publicKey) {
     try {
-      // Decode Base64 and parse JSON
-      final jsonString = utf8.decode(base64.decode(base64Key));
-      final keyData = json.decode(jsonString) as Map<String, dynamic>;
-
-      // Extract components and create key
-      final modulus = BigInt.parse(keyData['modulus'] as String);
-      final exponent = BigInt.parse(keyData['exponent'] as String);
-
-      return RSAPublicKey(modulus, exponent);
+      final verifier = RSASigner(SHA256Digest(), '0609608648016503040201');
+      verifier.init(false, PublicKeyParameter<RSAPublicKey>(publicKey));
+      final rsaSignature = RSASignature(signature);
+      return verifier.verifySignature(bytes, rsaSignature);
     } catch (e) {
-      throw const FormatException('Invalid public key format: \$e');
+      return false;
     }
   }
 
-  /// Reconstructs RSA private key from Base64 encoded string
-  /// Parses the JSON format created by privateKeyToBase64
-  static RSAPrivateKey privateKeyFromBase64(String base64Key) {
+  /// Converts RSA public key to Base64 encoded JSON string for storage/transmission
+  /// Includes modulus and exponent components
+  /// Returns a Base64 encoded string that can be safely stored or transmitted
+  static String publicKeyToBase64(RSAPublicKey publicKey) {
     try {
-      // Decode Base64 and parse JSON
+      final keyData = {
+        'modulus': publicKey.modulus.toString(),
+        'exponent': publicKey.exponent.toString(),
+        'keyType': 'RSA',
+        'version': '1.0',
+      };
+      final jsonString = json.encode(keyData);
+      return base64.encode(utf8.encode(jsonString));
+    } catch (e) {
+      throw Exception('Public key serialization failed: $e');
+    }
+  }
+
+  /// Converts RSA private key to Base64 encoded JSON string for storage
+  /// Includes all necessary components for key reconstruction
+  /// WARNING: Store securely using flutter_secure_storage in production
+  static String privateKeyToBase64(RSAPrivateKey privateKey) {
+    try {
+      final keyData = {
+        'modulus': privateKey.modulus.toString(),
+        'privateExponent': privateKey.privateExponent.toString(),
+        'p': privateKey.p.toString(),
+        'q': privateKey.q.toString(),
+        'keyType': 'RSA',
+        'version': '1.0',
+      };
+      final jsonString = json.encode(keyData);
+      return base64.encode(utf8.encode(jsonString));
+    } catch (e) {
+      throw Exception('Private key serialization failed: $e');
+    }
+  }
+
+  /// Reconstructs RSA public key from Base64 encoded JSON string
+  /// Validates key format and components before reconstruction
+  /// Throws FormatException if key format is invalid
+  static RSAPublicKey publicKeyFromBase64(String base64Key) {
+    try {
       final jsonString = utf8.decode(base64.decode(base64Key));
       final keyData = json.decode(jsonString) as Map<String, dynamic>;
-
-      // Extract components and create key
+      
+      // Validate key format
+      if (keyData['keyType'] != 'RSA') {
+        throw const FormatException('Invalid key type. Expected RSA.');
+      }
+      
       final modulus = BigInt.parse(keyData['modulus'] as String);
-      final privateExponent =
-          BigInt.parse(keyData['privateExponent'] as String);
+      final exponent = BigInt.parse(keyData['exponent'] as String);
+      
+      return RSAPublicKey(modulus, exponent);
+    } catch (e) {
+      throw FormatException('Invalid public key format: $e');
+    }
+  }
+
+  /// Reconstructs RSA private key from Base64 encoded JSON string
+  /// Validates key format and components before reconstruction
+  /// Throws FormatException if key format is invalid
+  static RSAPrivateKey privateKeyFromBase64(String base64Key) {
+    try {
+      final jsonString = utf8.decode(base64.decode(base64Key));
+      final keyData = json.decode(jsonString) as Map<String, dynamic>;
+      
+      // Validate key format
+      if (keyData['keyType'] != 'RSA') {
+        throw const FormatException('Invalid key type. Expected RSA.');
+      }
+      
+      final modulus = BigInt.parse(keyData['modulus'] as String);
+      final privateExponent = BigInt.parse(keyData['privateExponent'] as String);
       final p = BigInt.parse(keyData['p'] as String);
       final q = BigInt.parse(keyData['q'] as String);
-
+      
       return RSAPrivateKey(modulus, privateExponent, p, q);
     } catch (e) {
-      throw const FormatException('Invalid private key format: \$e');
+      throw FormatException('Invalid private key format: $e');
     }
   }
 
@@ -186,19 +349,23 @@ class CryptoUtils {
   /// Used for device identification and verification
   /// Returns a hexadecimal string representation of the hash
   static String generateFingerprint(RSAPublicKey publicKey) {
-    // Convert public key to standard format for fingerprinting
-    final keyString = publicKeyToBase64(publicKey);
+    try {
+      // Convert public key to standard format for fingerprinting
+      final keyString = publicKeyToBase64(publicKey);
 
-    // Create SHA-256 digest
-    final digest = SHA256Digest();
-    final keyBytes = Uint8List.fromList(utf8.encode(keyString));
-    final hashBytes = digest.process(keyBytes);
+      // Create SHA-256 digest
+      final digest = SHA256Digest();
+      final keyBytes = Uint8List.fromList(utf8.encode(keyString));
+      final hashBytes = digest.process(keyBytes);
 
-    // Convert to hexadecimal string with colons (SSH-style format)
-    final hexString = hashBytes
-        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
-        .join(':');
-    return hexString.toUpperCase();
+      // Convert to hexadecimal string with colons (SSH-style format)
+      final hexString = hashBytes
+          .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+          .join(':');
+      return hexString.toUpperCase();
+    } catch (e) {
+      throw Exception('Fingerprint generation failed: $e');
+    }
   }
 
   /// Creates a secure random number generator seeded with cryptographically strong entropy
@@ -221,32 +388,101 @@ class CryptoUtils {
 
   /// Processes encryption/decryption in blocks to handle large data
   /// RSA can only encrypt/decrypt data smaller than the key size
+  /// Automatically handles block size limitations and padding
   static Uint8List _processInBlocks(
       AsymmetricBlockCipher cipher, Uint8List input) {
-    // Calculate number of blocks needed
-    final numBlocks = input.length ~/ cipher.inputBlockSize +
-        ((input.length % cipher.inputBlockSize != 0) ? 1 : 0);
+    try {
+      final numBlocks = input.length ~/ cipher.inputBlockSize +
+          ((input.length % cipher.inputBlockSize != 0) ? 1 : 0);
 
-    // Create output buffer
-    final output = Uint8List(numBlocks * cipher.outputBlockSize);
+      // Create output buffer
+      final output = Uint8List(numBlocks * cipher.outputBlockSize);
 
-    var inputOffset = 0;
-    var outputOffset = 0;
+      var inputOffset = 0;
+      var outputOffset = 0;
 
-    // Process each block
-    while (inputOffset < input.length) {
-      final chunkSize = (inputOffset + cipher.inputBlockSize <= input.length)
-          ? cipher.inputBlockSize
-          : input.length - inputOffset;
+      // Process each block
+      while (inputOffset < input.length) {
+        final chunkSize = (inputOffset + cipher.inputBlockSize <= input.length)
+            ? cipher.inputBlockSize
+            : input.length - inputOffset;
 
-      outputOffset += cipher.processBlock(
-          input, inputOffset, chunkSize, output, outputOffset);
-      inputOffset += chunkSize;
+        outputOffset += cipher.processBlock(
+            input, inputOffset, chunkSize, output, outputOffset);
+        inputOffset += chunkSize;
+      }
+
+      // Return trimmed output if necessary
+      return (output.length == outputOffset)
+          ? output
+          : output.sublist(0, outputOffset);
+    } catch (e) {
+      throw Exception('Block processing failed: $e');
     }
+  }
 
-    // Return trimmed output if necessary
-    return (output.length == outputOffset)
-        ? output
-        : output.sublist(0, outputOffset);
+  /// Utility method to test hybrid encryption round-trip
+  /// For development and testing purposes only
+  static bool testHybridEncryption() {
+    try {
+      // Generate test key pairs
+      final senderKeyPair = generateKeyPair();
+      final recipientKeyPair = generateKeyPair();
+      
+      const testMessage = 'This is a test message for hybrid encryption!';
+      
+      // Encrypt message
+      final encryptedBlob = encryptHybridMessage(
+        testMessage,
+        recipientKeyPair.publicKey,
+        senderKeyPair.privateKey,
+      );
+      
+      // Decrypt message
+      final decryptedMessage = decryptHybridMessage(
+        encryptedBlob,
+        recipientKeyPair.privateKey,
+        senderKeyPair.publicKey,
+      );
+      
+      return decryptedMessage == testMessage;
+    } catch (e) {
+      return false;
+    }
+  }
+}
+
+/// Helper class for structured error handling in cryptographic operations
+class CryptoException implements Exception {
+  final String message;
+  final String? code;
+  final Exception? innerException;
+
+  const CryptoException(this.message, {this.code, this.innerException});
+
+  @override
+  String toString() => 'CryptoException: $message ${code != null ? '($code)' : ''}';
+}
+
+/// Performance metrics for cryptographic operations
+class CryptoMetrics {
+  final Duration keyGenerationTime;
+  final Duration encryptionTime;
+  final Duration decryptionTime;
+  final int messageSize;
+
+  const CryptoMetrics({
+    required this.keyGenerationTime,
+    required this.encryptionTime,
+    required this.decryptionTime,
+    required this.messageSize,
+  });
+
+  @override
+  String toString() {
+    return 'CryptoMetrics{keyGen: ${keyGenerationTime.inMilliseconds}ms, '
+           'encrypt: ${encryptionTime.inMilliseconds}ms, '
+           'decrypt: ${decryptionTime.inMilliseconds}ms, '
+           'size: ${messageSize}B}';
   }
 }

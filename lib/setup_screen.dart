@@ -43,7 +43,7 @@ class _SetupScreenState extends State<SetupScreen> {
       }
     } catch (e) {
       setState(() {
-        _statusMessage = 'Error checking existing keys: \$e';
+        _statusMessage = 'Error checking existing keys: $e';
       });
     }
   }
@@ -84,11 +84,11 @@ class _SetupScreenState extends State<SetupScreen> {
         // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content:
-                  Text('Device keys generated with fingerprint: \$fingerprint'),
+                  Text('Device keys generated with fingerprint: $fingerprint'),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
+              duration: const Duration(seconds: 3),
             ),
           );
         }
@@ -97,16 +97,16 @@ class _SetupScreenState extends State<SetupScreen> {
       }
     } catch (e) {
       setState(() {
-        _statusMessage = 'Error generating keys: \$e';
+        _statusMessage = 'Error generating keys: $e';
         _isGeneratingKeys = false;
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Key generation failed: \$e'),
+          SnackBar(
+            content: Text('Key generation failed: $e'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }

@@ -52,13 +52,13 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       if (kDebugMode) {
-        print('Loaded \${devices.length} linked devices');
+        print('Loaded ${devices.length} linked devices');
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      _showError('Error loading device data: \$e');
+      _showError('Error loading device data: $e');
     }
   }
 
@@ -89,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Device'),
-        content: const Text('Are you sure you want to remove "\$deviceName"?\\n\\n'
+        content: Text('Are you sure you want to remove "$deviceName"?\\n\\n'
                      'This will permanently delete the device link and you will need to re-pair to restore communication.'),
         actions: [
           TextButton(
@@ -110,12 +110,12 @@ class _HomeScreenState extends State<HomeScreen> {
         final success = await StorageService.deleteLinkedDevice(deviceFingerprint);
         if (success) {
           await _loadDeviceData(); // Refresh the list
-          _showSuccess('Device "\$deviceName" removed successfully');
+          _showSuccess('Device "$deviceName" removed successfully');
         } else {
           _showError('Failed to remove device');
         }
       } catch (e) {
-        _showError('Error removing device: \$e');
+        _showError('Error removing device: $e');
       }
     }
   }
@@ -158,11 +158,11 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Original: \$testMessage'),
+              const Text('Original: $testMessage'),
               const SizedBox(height: 8),
-              const Text('Encrypted: \${encryptedBase64.substring(0, 50)}...'),
+              Text('Encrypted: $encryptedBytes...'),
               const SizedBox(height: 8),
-              const Text('Decrypted: \$decryptedMessage'),
+              Text('Decrypted: $decryptedMessage'),
               const SizedBox(height: 8),
               Text(
                 testMessage == decryptedMessage ? '✅ Test Successful' : '❌ Test Failed',
@@ -182,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     } catch (e) {
-      _showError('Encryption test failed: \$e');
+      _showError('Encryption test failed: $e');
     }
   }
 
@@ -303,9 +303,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Fingerprint: \$_localFingerprint',
-                              style: TextStyle(
+                            Text(
+                              'Fingerprint: $_localFingerprint',
+                              style: const TextStyle(
                                 fontFamily: 'monospace',
                                 fontSize: 12,
                               ),
@@ -328,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Icon(Icons.devices),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Linked Devices (\${_linkedDevices.length})',
+                                  'Linked Devices (${_linkedDevices.length})',
                                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -645,5 +645,49 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
     );
+  }
+}
+
+// Add these data classes to your home_screen.dart or create a separate models file:
+
+class IncomingZappData {
+  final String content;
+  final String senderName;
+  final String senderFingerprint;
+  final DateTime receivedAt;
+  final bool processed;
+
+  const IncomingZappData({
+    required this.content,
+    required this.senderName,
+    required this.senderFingerprint,
+    required this.receivedAt,
+    this.processed = false,
+  });
+}
+
+class ZappActionData {
+  final String content;
+  final String intent;
+  final String action;
+  final String sourceApp;
+  final DateTime timestamp;
+
+  const ZappActionData({
+    required this.content,
+    required this.intent,
+    required this.action,
+    required this.sourceApp,
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'content': content,
+      'intent': intent,
+      'action': action,
+      'sourceApp': sourceApp,
+      'timestamp': timestamp.toIso8601String(),
+    };
   }
 }

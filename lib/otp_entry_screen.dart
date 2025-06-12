@@ -44,7 +44,7 @@ class _OTPEntryScreenState extends State<OTPEntryScreen> {
       }
     } catch (e) {
       setState(() {
-        _statusMessage = 'Error loading local keys: \$e';
+        _statusMessage = 'Error loading local keys: $e';
       });
     }
   }
@@ -91,17 +91,17 @@ class _OTPEntryScreenState extends State<OTPEntryScreen> {
         print('=== DEVICE LINKING SIMULATION ===');
       }
       if (kDebugMode) {
-        print('Local Device Fingerprint: \$_localFingerprint');
+        print('Local Device Fingerprint: $_localFingerprint');
       }
       if (kDebugMode) {
-        print('Generated OTP: \$_generatedOTP');
+        print('Generated OTP: $_generatedOTP');
       }
       if (kDebugMode) {
-        print('Entered OTP: \${_otpController.text}');
+        print('Entered OTP: ${_otpController.text}');
       }
       if (kDebugMode) {
         print(
-          'Local Public Key (Base64): \${localPublicKeyBase64.substring(0, 50)}...');
+          'Local Public Key (Base64): ${localPublicKeyBase64.substring(0, 50)}...');
       }
 
       // **PLACEHOLDER**: Server communication would happen here
@@ -162,10 +162,10 @@ class _OTPEntryScreenState extends State<OTPEntryScreen> {
       }
     } catch (e) {
       setState(() {
-        _statusMessage = 'Connection failed: \$e';
+        _statusMessage = 'Connection failed: $e';
         _isConnecting = false;
       });
-      _showError('Failed to link device: \$e');
+      _showError('Failed to link device: $e');
     }
   }
 

@@ -47,12 +47,12 @@ class StorageService {
       await prefs.setString(_keyFingerprint, fingerprint);
 
       if (kDebugMode) {
-        print('Key pair saved successfully with fingerprint: \$fingerprint');
+        print('Key pair saved successfully with fingerprint: $fingerprint');
       }
       return true;
     } catch (e) {
       if (kDebugMode) {
-        print('Error saving key pair: \$e');
+        print('Error saving key pair: $e');
       }
       return false;
     }
@@ -96,7 +96,7 @@ class StorageService {
       }
 
       if (kDebugMode) {
-        print('Key pair loaded successfully with fingerprint: \$fingerprint');
+        print('Key pair loaded successfully with fingerprint: $fingerprint');
       }
 
       return {
@@ -106,7 +106,7 @@ class StorageService {
       };
     } catch (e) {
       if (kDebugMode) {
-        print('Error loading key pair: \$e');
+        print('Error loading key pair: $e');
       }
       return null;
     }
@@ -144,13 +144,13 @@ class StorageService {
         // Update existing device
         existingDevices[existingIndex] = deviceData;
         if (kDebugMode) {
-          print('Updated existing device: \$deviceName');
+          print('Updated existing device: $deviceName');
         }
       } else {
         // Add new device
         existingDevices.add(deviceData);
         if (kDebugMode) {
-          print('Added new linked device: \$deviceName');
+          print('Added new linked device: $deviceName');
         }
       }
 
@@ -161,7 +161,7 @@ class StorageService {
       return true;
     } catch (e) {
       if (kDebugMode) {
-        print('Error saving linked device: \$e');
+        print('Error saving linked device: $e');
       }
       return false;
     }
@@ -192,12 +192,12 @@ class StorageService {
       final devices = devicesList.cast<Map<String, dynamic>>();
 
       if (kDebugMode) {
-        print('Loaded \${devices.length} linked devices');
+        print('Loaded ${devices.length} linked devices');
       }
       return devices;
     } catch (e) {
       if (kDebugMode) {
-        print('Error loading linked devices: \$e');
+        print('Error loading linked devices: $e');
       }
       return [];
     }
@@ -222,7 +222,7 @@ class StorageService {
 
       if (existingDevices.length == initialLength) {
         if (kDebugMode) {
-          print('Device with fingerprint \$deviceFingerprint not found');
+          print('Device with fingerprint $deviceFingerprint not found');
         }
         return false;
       }
@@ -233,12 +233,12 @@ class StorageService {
 
       if (kDebugMode) {
         print(
-          'Successfully removed device with fingerprint: \$deviceFingerprint');
+          'Successfully removed device with fingerprint: $deviceFingerprint');
       }
       return true;
     } catch (e) {
       if (kDebugMode) {
-        print('Error deleting linked device: \$e');
+        print('Error deleting linked device: $e');
       }
       return false;
     }
@@ -260,12 +260,12 @@ class StorageService {
       }
 
       if (kDebugMode) {
-        print('Device with fingerprint \$deviceFingerprint not found');
+        print('Device with fingerprint $deviceFingerprint not found');
       }
       return null;
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting linked device: \$e');
+        print('Error getting linked device: $e');
       }
       return null;
     }
@@ -288,7 +288,7 @@ class StorageService {
       return CryptoUtils.publicKeyFromBase64(publicKeyBase64);
     } catch (e) {
       if (kDebugMode) {
-        print('Error getting device public key: \$e');
+        print('Error getting device public key: $e');
       }
       return null;
     }
@@ -308,7 +308,7 @@ class StorageService {
       return true;
     } catch (e) {
       if (kDebugMode) {
-        print('Error saving settings: \$e');
+        print('Error saving settings: $e');
       }
       return false;
     }
@@ -335,7 +335,7 @@ class StorageService {
       return settings;
     } catch (e) {
       if (kDebugMode) {
-        print('Error loading settings: \$e');
+        print('Error loading settings: $e');
       }
       return {};
     }
@@ -363,7 +363,7 @@ class StorageService {
       return true;
     } catch (e) {
       if (kDebugMode) {
-        print('Error clearing data: \$e');
+        print('Error clearing data: $e');
       }
       return false;
     }
@@ -387,7 +387,7 @@ class StorageService {
       };
     } catch (e) {
       return {
-        'error': 'Failed to generate summary: \$e',
+        'error': 'Failed to generate summary: $e',
         'lastUpdated': DateTime.now().toIso8601String(),
       };
     }

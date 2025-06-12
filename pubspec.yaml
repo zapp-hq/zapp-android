@@ -53,6 +53,7 @@ dependencies:
 
   # HTTP client for server communication (when implementing native integration)
   http: ^1.1.2
+  crypto: ^3.0.6
 
   # JSON handling for data serialization
   # Already included in Dart core, but you may want specific utilities:
