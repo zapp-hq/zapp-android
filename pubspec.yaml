@@ -52,8 +52,9 @@ dependencies:
   system_alert_window: ^2.0.2
 
   # HTTP client for server communication (when implementing native integration)
-  http: ^1.1.2
+  http: ^1.4.0
   crypto: ^3.0.6
+  convert: ^3.1.2
 
   # JSON handling for data serialization
   # Already included in Dart core, but you may want specific utilities:

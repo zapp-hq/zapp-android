@@ -8,7 +8,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:pointycastle/export.dart';
-import 'package:crypto/crypto.dart';
 
 /// Cryptographic utility class for RSA encryption, decryption, signing, and verification
 /// Uses the pointycastle package for all cryptographic operations

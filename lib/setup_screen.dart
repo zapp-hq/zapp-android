@@ -379,15 +379,25 @@ class _SetupScreenState extends State<SetupScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    '• Your device generates a unique RSA-2048 key pair for secure communication\\n'
-                    '• Private keys are stored locally and never shared\\n'
-                    '• Device fingerprints help verify authentic connections\\n'
-                    '• All messages are encrypted end-to-end between devices',
-                    style: TextStyle(
-                      color: Colors.amber.shade700,
-                      fontSize: 13,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ..."""• Your device generates a unique RSA-2048 key pair for secure communication
+                            • Private keys are stored locally and never shared
+                            • Device fingerprints help verify authentic connections
+                            • All messages are encrypted end-to-end between devices"""
+                          .split('\n')
+                          .map(
+                            (line) => Text(
+                              line.trim(), // trim to remove any leading/trailing whitespace from the split
+                              style: TextStyle(
+                                color: Colors.amber.shade700,
+                                fontSize: 13,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ],
                   ),
                 ],
               ),
